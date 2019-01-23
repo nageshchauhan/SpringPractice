@@ -720,3 +720,204 @@ list: [A, E, S, F, O]
 list: [U, E, S, F, O]
 U, P, S, F, O,
 ```
+
+
+----------------------------------------150------------
+
+## Need of concurrent collection
+
+Traditional collection objects (like ArrayList, HashMap, HashSet etc) can be accessed by multiple threads simultaneously and there may be chance of data inconsistency problem, hence these are not thread safe.
+
+Already present Thread safe collections (like Vector, Hashtable synchoronizedList() etc) are performance wise not upto the mark. Because for each operation even for read operation collection will be accessed by only one thread at a time hence it increases waiting time of Threads.
+
+Another big problem with traditional collection is while one thread iterating collection, other threads are not allowed to modify collection object simultaneously. If we are trying to modify list with multiple thread then will get `ConcurrentModificationException` at runtime.
+
+Example:
+
+```java
+import java.util.ArrayList;
+import java.util.Iterator;
+public class ConcurrentExample extends Thread {
+    
+    static ArrayList<String> al = new ArrayList<String>();
+    
+    public void run(){
+        try{
+            Thread.sleep(2000);
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        System.out.println("Child thread updating list");
+        al.add("D");
+    }
+    
+    public static void main(String[] args) throws InterruptedException {
+        al.add("A");
+        al.add("B");
+        al.add("C");
+        ConcurrentExample t = new ConcurrentExample();
+        t.start();
+        Iterator<String> itr = al.iterator();
+        while(itr.hasNext()){
+            System.out.println("main thread iterating list and current object is "+itr.next());
+            Thread.sleep(1000);
+        }
+        System.out.println(al);
+        
+    }
+}
+```
+
+Output:
+
+```java
+main thread iterating list and current object is A
+main thread iterating list and current object is B
+main thread iterating list and current object is C
+Child thread updating list
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.util.ArrayList$Itr.checkForComodification(ArrayList.java:859)
+	at java.util.ArrayList$Itr.next(ArrayList.java:831)
+	at ConcurrentExample.main(ConcurrentExample.java:22)
+```
+
+Hence these traditional collection objects are not suitable for scalable multi threaded environment. To overcome these problem java introduced concurrent collection in version 1.5
+
+
+----------------------------151--------------
+
+## Difference between Traditional collection and Concurrent collection
+
+Concurrent collections are always thread safe.
+
+Compared with thread safe traditional collection, performance of concurrent collection is high because of locking mechanism.
+
+While one thread interacting with collection, the other thread are allowed to modify collection in safe manner.
+
+Hence concurrent collections never throw `ConcurrentModificationException`.
+
+The important concurrent classes are :
+1. `ConcurrentHashMap`
+2. `CopyOnWriteArrayList`
+3. `CopyOnWriteArraySet`
+
+-----------------------------------152--------------------
+
+## ConcurrentMap (I, v1.5)
+
+	Map
+	 |
+	 |
+ConcurrentMap(I)
+	 |
+	 |
+ConcurrentHashMap(Class)
+
+ConcurrentMap defines following specific methods 
+
+1. `V putIfAbsent(K key, V value)` <br>
+This method will add the given Key Value pair as Entry if the key is not present in the map. If given key is already present then it will not override the value of existing one.
+
+`Map` interface provides `put(k,v)` method which **will override** the value of given key if the key is already present in map.
+Whereas `putIfAbsent(k,v)` of `ConcurrentMap` **will not override** the value of given key if the key is alreayd present.
+
+#### Example:
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+public class Example{
+	public static void main(String[] args){
+		ConcurrentMap<String, String> map = new ConcurrentHashMap<String, String>();
+        map.putIfAbsent("A", "A");
+        map.putIfAbsent("A", "B");
+        System.out.println(map);
+	}
+}
+```
+
+Output:
+
+```java
+{A=A}
+```
+
+2. `boolean remove(K key, V value)` <br>
+Removes the Entry if the key associated with specified value. In short while remove Entry from ConcurrentMap, it checks key and value both, if matched then only it will remove.
+
+Example:
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+public class Example{
+	public static void main(String[] args){
+		ConcurrentMap<String, String> map = new ConcurrentHashMap<String, String>();
+        map.put("A", "A");
+        map.remove("A", "B");
+        System.out.println(map);
+        map.remove("A", "A");
+        System.out.println(map);
+	}
+}
+```
+
+Output:
+
+```java
+{A=A}
+{}
+```
+
+3. `boolean replace(K key, V oldValue, V newValue)` <br>
+Replace the oldValue with newValue only if map contains key mapped to oldValue.
+
+Example:
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+public class Example{
+	public static void main(String[] args){
+		ConcurrentMap<String, String> map = new ConcurrentHashMap<String, String>();
+        map.put("A", "A");
+        map.remove("A", "B");
+        System.out.println(map);
+        map.remove("A", "A");
+        System.out.println(map);
+	}
+}
+```
+
+Output:
+
+```java
+{A=A}
+{A=C}
+```
+
+---------------------------------------------153-----
+
+## ConcurrentHashMap [class, v1.5]
+
+--> Underlying data structure is Hashtable.
+--> ConcurrentHashMap allows concurrent read and threas safe update operations.
+--> To perform read operation, thread won't require any lock. But to perform update operation, thread requires lock, but the lock of only a particular part of map(bucket level/segment leve).
+--> Hashtable class uses object level lock for thread safety, but instead of whole map, concurrent update achieved by internally dividing map into Smaller portion which is defined by concurrency level.
+--> The default concurrency level is 16.
+--> ConcurrentHashMap allows simultaneous read operation and simultaneous 16 write/update operations by default.
+--> `null` is not allowed for both key and value.
+--> while one thread iterating, the other thread can perform update operation and ConcurrentHashMap never throw `ConcurrentModificationException`.
+
+### Constructors
+
+1. `ConcurrentHashMap chm = new ConcurrentHashMap();` <br>
+creates an empty ConcurrentHashMap with default intitialCapacity (16), default fill ration (0.75) and default concurrency level (16).
+
+2. `ConcurrentHashMap chm = new ConcurrentHashMap(int initialCapacity);`
+
+3. `ConcurrentHashMap chm = new ConcurrentHashMap(int initialCapacity, float fillRatio);`
+
+4. `ConcurrentHashMap chm = new ConcurrentHashMap(int initialCapacity, float fillRatio, int concurrencyLevel);`
+
+5. `ConcurrentHashMap chm = new ConcurrentHashMap(Map m);`
