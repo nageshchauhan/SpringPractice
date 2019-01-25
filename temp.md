@@ -921,3 +921,142 @@ creates an empty ConcurrentHashMap with default intitialCapacity (16), default f
 4. `ConcurrentHashMap chm = new ConcurrentHashMap(int initialCapacity, float fillRatio, int concurrencyLevel);`
 
 5. `ConcurrentHashMap chm = new ConcurrentHashMap(Map m);`
+
+----------------------------------------------154---------------------
+
+### Example
+
+```java
+import java.util.concurrent.ConcurrentHashMap;
+
+public class ConcurrentHashMapTest {
+
+    public static void main(String[] args) {
+        ConcurrentHashMap<String, String> chm = new ConcurrentHashMap<String, String>();
+        chm.put("101", "A");
+        chm.put("102", "B");
+        chm.putIfAbsent("103", "C");
+        chm.putIfAbsent("101", "D");
+        chm.remove("101","D");
+        chm.replace("102", "B", "E");
+        
+        System.out.println(chm);
+    }
+}
+```
+
+Output:
+
+```java
+{101=A, 103=C, 102=E}
+```
+
+--------------------------155---------------
+
+### Example2
+
+```java
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+
+public class ConcurrentHashMapTest extends Thread {
+    
+    static ConcurrentHashMap<String, String> chm = new ConcurrentHashMap<String, String>(); 
+    
+    public void run(){
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Child thread updating map ");
+        chm.put("103", "C");
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        
+        chm.put("101", "A");
+        chm.put("102", "B");
+        
+        ConcurrentHashMapTest obj = new ConcurrentHashMapTest();
+        obj.start();
+        
+        Set<String> keySet = chm.keySet();
+        Iterator<String> itr = keySet.iterator();
+        
+        while(itr.hasNext()){
+            System.out.println("main method iterating and current value is : "+chm.get(itr.next()));
+            Thread.sleep(3000);
+        }
+        System.out.println(chm);
+    }
+}
+```
+
+Output:
+
+```java
+main method iterating and current value is : A
+Child thread updating map 
+main method iterating and current value is : B
+{101=A, 103=C, 102=B}
+```
+
+**Note:** In this example, the main method is creating another thread (child thread). Main thread is responsible for executing the iterator functionality of `ConcurrentHashMap`, whereas child thread is trying to update at the same time. Here both operation (iterating and updating) over map happening. The update operation on map will happen in safe manner so we will never get `ConcurrentModificationException` even there are huge number of thread.
+
+If we replace `ConcurrentHashMap` with `HashMap`, then it is sure that we will get `ConcurrentModificationException`.
+
+--------------------------------------------156------------------
+
+## Difference between HashMap and ConcurrentHashMap
+
+### HashMap
+1. It is not thread safe.
+2. Relatively performance is high because threas are not required to wait to operate.
+3. While one thread iterating `HashMap`, other threads are not allowed to modify `Map` otherwise we will get `ConcurrentModificationException` at runtime.
+4. `Iterator` of `HashMap` is fail-fast and it throws `ConcurrentModificationException`.
+5. `null` is allowed for both key and value.
+6. Introduced in 1.2 version.
+
+### ConcurrentHashMap
+1. It is thread safe.
+2. Relatively performance is low because some times threads are required to wait to operate. (if concurrencyLevel is crossed)
+3. While one thread iterating `ConcurrentHashMap`, other threads are allowed to modify `Map` object in safe manner and it won't throw `ConcurrentModificationException`.
+4. `Iterator` of `ConcurrentHashMap` is fail-safe.
+5. `null` is not allowed for both key and value otherwise we will get `NullPointerException`.
+6. Introduced in 1.5 version.
+
+--------------------------------------------157---------------------
+
+##Differences in ConcurrentHashMap, synchronizedMap, Hashtable
+
+### ConcurrentHashMap
+1. We will get thread safety without locking total map, just with bucket level/segment level lock.
+2. At a time multiple threads are allowed to operate on map in safe manner.
+3. Read operations can be performed without lock but write operation can be performed with bucket level lock.
+4. While one thread iterating map object, the other threads are allowed to modify map and we won't get `ConcurrentModificationException`.
+5. Iterator of `ConcurrentHashMap` is fail-safe and won't raise `ConcurrentModificationException`.
+6. `null` is not allowed for both key and value.
+7. Introduced in 1.5 version.
+
+### synchronizedMap
+1. We will get thread safety by locking whole map object.
+2. At a time only one thread is allowed to perform any operation on map.
+3. Each read and write operations require total map object lock.
+4. While one thread iterating map the other threads are not allowed to modify map otherwise we will get `ConcurrentModificationException`.
+5. Iterator of synchronizedMap is fail-fast and it will raise `ConcurrentModificationException`.
+6. `null` is allowed for both key and value.
+7. Introduced in 1.2 version.
+
+### Hashtable
+1. We will get thread safety by locking whole map object.
+2. At a time only one thread is allowed to perform any operation on map.
+3. Each read and write operations require total map object lock.
+4. While one thread iterating map the other threads are not allowed to modify map otherwise we will get `ConcurrentModificationException`.
+5. Iterator of synchronizedMap is fail-fast and it will raise `ConcurrentModificationException`.
+6. `null` is not allowed for both key and value.
+7. Introduced in 1.0 version.
+
+----------------------------158--------------------
