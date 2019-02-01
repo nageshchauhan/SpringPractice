@@ -1,0 +1,13 @@
+29_jan_2018
+
+1. Login functionality added
+2. uses Custom UserDetailsService for authentication and default authentication provider
+3. In case of default authentication provider, 
+
+
+30_jan_2018
+1. Added signup functionality
+2. Instead of using Custom UserDetailsService, created custom authentication provider for authentication.
+3. added option of either using in-memory or physical db based on choice in xml config file.
+
+
